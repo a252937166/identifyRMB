@@ -1,11 +1,13 @@
 from keras_preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, GlobalAveragePooling2D
+import keras
+from keras.models import Model
+from keras.layers import *
 
+trian_dir = 'E:/projects/py/1'
 
-trian_dir = 'D:/competition/train_data'
-
-test_dir = 'D:/competition/test_data'
+test_dir = 'E:/projects/py/1t'
 
 width = 224
 
@@ -22,29 +24,22 @@ test_datagen = ImageDataGenerator(rescale=1. / 255)
 train_generator = train_datagen.flow_from_directory(
     trian_dir,
     target_size=(width, hight),
-    batch_size=32,
-    class_mode='binary')
+    batch_size=2,
+    class_mode='categorical')
 
 
 validation_generator = test_datagen.flow_from_directory(
     test_dir,
     target_size=(width, hight),
-    batch_size=32,
-    class_mode='binary')
+    batch_size=2,
+    class_mode='categorical')
 
-model = Sequential()
+backbone = keras.applications.ResNet50(weights=None)
+backbone.load_weights("./resnet50_weights_tf_dim_ordering_tf_kernels.h5")
+x = backbone.get_layer("avg_pool").output
+prediction = Dense(2,activation="softmax")(x)
+model = Model(input=backbone.input,output=prediction)
 
-model.add(Conv2D(64, (3, 3),
-        activation='relu',
-        padding='same',
-        name='block1_conv1',
-        dim_ordering='tf',
-        input_shape=(width,hight,3)))
-
-
-model.add(GlobalAveragePooling2D(data_format=None))
-
-model.add(Dense(1, input_shape=(width, hight), activation='relu'),)
 
 model.compile(loss='squared_hinge',
               optimizer='sgd',
@@ -52,7 +47,7 @@ model.compile(loss='squared_hinge',
 
 model.fit_generator(
     train_generator,
-    steps_per_epoch=11,
+    steps_per_epoch=5,
     epochs=2,
     validation_data=validation_generator,
-    validation_steps=800)
+    validation_steps=5)
